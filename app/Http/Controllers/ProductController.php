@@ -2,123 +2,52 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): JsonResponse
     {
-        $products = Product::all();
-        return response()->json($products);
+        return response()->json([
+            'message' => 'Products retrieved successfully',
+            'products' => ProductResource::collection(Product::all())
+        ], 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(StoreProductRequest $request): JsonResponse
     {
-        $response = [];
+        $product = Product::create($request->validated());
 
-        $validation = $this->validation($request->all());
-
-        if (!is_array($validation)) {
-            Product::create($request->all());
-            array_push($response, ['status' => 'success']);
-            return response()->json($response);
-        }
-        else {
-            return response()->json($validation);
-        }
+        return response()->json([
+            'message' => 'Product created successfully',
+            'product' => $product
+        ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(Product $product): JsonResponse
     {
-        $product = Product::find($id);
-        return response()->json($product);
+        return response()->json($product, 200);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
-        $response = [];
-        $validation = $this->validation($request->all());
+        $product->update($request->validated());
 
-        if (!is_array($validation)) {
-            $product = Product::find($id);
-
-            if ($product) {
-                $product->fill($request->all())->save();
-                array_push($response, ['status'=> 'success']);
-            }
-            else {
-                array_push($response, ['status' => 'error']);
-                array_push($response, ['errors' => 'No existe el ID']);
-            }
-            return response()->json($response);
-        }
-        else {
-            return response()->json($validation);
-        }
+        return response()->json([
+            'message' => 'Product updated successfully',
+            'product' => $product
+        ], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Product $product): JsonResponse
     {
-        $response = [];
-        $product = Product::find($id);
-
-        if ($product) {
-            $product->delete();
-            array_push($response, ['status'=> 'success']);
-        }
-        else {
-            array_push($response, ['status' => 'error']);
-            array_push($response, ['errors' => 'No existe el ID']);
-        }
-        return response()->json($response);
-    }
-
-    public function validation($parameters)
-    {
-        $response = [];
-
-        $messages= [
-            'max' => 'El campo :attribute NO debe tener más de :max caracteres',
-            'required' => 'El campo :attribute NO debe de estar vacío',
-            'price.numeric' => 'El precio debe ser numérico'
-        ];
-        $attributes = [
-            'name' => 'nombre',
-            'description' => 'descripción',
-            'price' => 'precio'
-        ];
-
-        $validation = Validator::make($parameters,
-        [
-            'name' => 'required|string|max:80',
-            'description' => 'required|string|max:150',
-            'price' => 'required|decimal:0, 2',
-        ], $messages, $attributes);
-
-        if ($validation->fails()) {
-            array_push($response, ['status' => 'error']);
-            array_push($response, ['errors' => $validation->errors()]);
-            return $response;
-        }
-        else {
-            return true;
-        }
+        $product->delete();
+        return response()->json([
+            'message' => 'Product deleted successfully'
+        ], 200);
     }
 }
